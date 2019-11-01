@@ -11,6 +11,7 @@ public class Main
 {
     private static String username;
     private static List<String> LinkList = new ArrayList<>();
+    private static String jsonCheck;
     public static void main(String[] args)
     {
         int lastPage;
@@ -20,44 +21,56 @@ public class Main
         System.out.println("Check JSON File for comparison? ");
         String jsonCheck = in.nextLine();
         List<String> jsonList = new ArrayList<>();
-        if(jsonCheck.equals("Yes")) {
+        boolean error = false;
+        if(jsonCheck.toUpperCase().equals("YES")) {
+            System.out.println("JSON File Path: ");
+            String jsonFile = in.nextLine();
+            System.out.println("Output File Path: ");
+            String outputFile = in.nextLine();
             JSONFilters json = new JSONFilters();
-            jsonList = json.getUrls("fanficBookMarks.json", "FirefoxLinks.txt");
+            jsonList = json.getUrls(jsonFile, outputFile);
         }
+        in.close();
         UserAgent userAgent = new UserAgent();  //create new userAgent (headless browser)
         List<String> FirstList = new ArrayList<>();
-        FindFirstPage(userAgent,FirstList); // find first page links in order to find the number of bookmark pages
-        lastPage = LastBookmarkPage(FirstList);
-        for(int i = 1; i <= lastPage+1; i++) //find links on all pages
+        try //check username and find last page
         {
-            //System.out.println("Finding Links on Page: "+ i);
-            FindLinks(i,userAgent);
+            FindFirstPage(userAgent,FirstList); // find first page links in order to find the number of bookmark pages
+        } catch (Exception e)
+        {
+            System.out.println("Can't Find Username");
+            error = true;
         }
-        List<String> finalList = getMatchingWorks(LinkList); // display all work links
-        if(jsonCheck.equals("Yes"))
-        {
-            List<String> temp = compareLists(jsonList, finalList);
-            for (String link : temp) {
-                System.out.println("Missing Item! "+link);
+        if(!error) {
+            lastPage = LastBookmarkPage(FirstList);
+            for (int i = 1; i <= lastPage + 1; i++) //find links on all pages
+            {
+                //System.out.println("Finding Links on Page: "+ i);
+                FindLinks(i, userAgent);
             }
-            System.out.println("Missing Item Count: " + temp.size());
+            List<String> finalList = getMatchingWorks(LinkList); // display all work links
+            if (jsonCheck.toUpperCase().equals("YES")) {
+                List<String> temp = compareLists(jsonList, finalList);
+                for (String link : temp) {
+                    System.out.println("Missing Item! " + link);
+                }
+                System.out.println("Missing Item Count: " + temp.size());
+            }
         }
 
     }
-    private static void FindFirstPage(UserAgent userAgent, List<String> FirstList)
+    private static void getInput()
     {
-        try {
+
+    }
+    private static void FindFirstPage(UserAgent userAgent, List<String> FirstList) throws ResponseException
+    {
             userAgent.visit("https://archiveofourown.org/users/"+username+"/bookmarks"); //visit url
             Elements links = userAgent.doc.findEvery("<a href"); //find all links
             for (Element link : links)
             {
                 FirstList.add(link.getAtString("href"));
             }
-        }
-        catch (JauntException ex)
-        {
-            System.out.println("URL Exception: "+ ex);
-        }
     }
     private static void FindLinks(int page, UserAgent userAgent)
     {
@@ -138,6 +151,7 @@ public class Main
         for (String s : secondList) {
             if (!firstList.contains(s))
             {
+                System.out.println("Compare URL: "+ s + "Contains Result: " + firstList.contains(s));
                 temp.add(s);
             }
         }
