@@ -11,14 +11,13 @@ import java.util.regex.Pattern;
 public class Main
 {
     private static String username;
-    private static final List<String> LinkList = new ArrayList<>();
+    private static List<String> linkList = new ArrayList<>();
     private static List<String> jsonList;
     private static boolean checkJson;
 
-    public static void main(String[] args)
+    public static void main(String[] args) //TODO at some point move a03 stuff to separate class
     {
         boolean error = false;
-        int lastPage;
         getInput();
         UserAgent userAgent = new UserAgent();  //create new userAgent (headless browser)
         List<String> FirstList = new ArrayList<>();
@@ -26,29 +25,22 @@ public class Main
         {
             FindFirstPage(userAgent, FirstList);
         }
-        catch (Exception e)
+        catch (ResponseException e)
         {
             System.out.println("Can't Find Username");
             error = true;
         }
         if (!error)
         {
-            lastPage = LastBookmarkPage(FirstList);
+            int lastPage = LastBookmarkPage(FirstList);
             for (int i = 1; i <= lastPage + 1; i++) //find links on all pages
             {
-                //System.out.println("Finding Links on Page: "+ i);
                 FindLinks(i, userAgent);
             }
-            List<String> finalList = getMatchingWorks(); // get all work links
-            if (checkJson)
-            {
-                List<String> temp = compareLists(jsonList, finalList);
-                for (String link : temp)
-                {
-                    System.out.println("Missing Item! " + link);
-                }
-                System.out.println("Missing Item Count: " + temp.size());
-            }
+            linkList = getMatchingWorks(); // get all work links
+            if (checkJson) System.out.println("Works found in JSON File: " + jsonList.size());
+            System.out.println("Works found on A03: " + linkList.size());
+            findMissingItems(); // look for items missing from json file
         }
 
     }
@@ -56,9 +48,9 @@ public class Main
     private static void getInput()
     {
         Scanner in = new Scanner(System.in);
-        System.out.println("Enter Username for bookmark lookup: ");
+        System.out.print("Enter Username for bookmark lookup: ");
         username = in.nextLine();
-        System.out.println("Check JSON File for comparison? ");
+        System.out.print("Check JSON File for comparison? ");
         String jsonCheck = in.nextLine();
         if (jsonCheck.toUpperCase().equals("YES"))
         {
@@ -85,6 +77,7 @@ public class Main
         {
             jsonList = json.getUrls(jsonFile, outputFile, false);
         }
+        System.out.println("JSON URL's sent to " + outputFile);
     }
 
     private static void FindFirstPage(UserAgent userAgent, List<String> FirstList) throws ResponseException
@@ -105,7 +98,7 @@ public class Main
             Elements links = userAgent.doc.findEvery("<a href"); //find all links
             for (Element link : links)
             {
-                LinkList.add(link.getAtString("href")); // add links to list for sorting through
+                linkList.add(link.getAtString("href")); // add links to list for sorting through
             }
         }
         catch (JauntException ex)
@@ -142,27 +135,24 @@ public class Main
         Pattern works = Pattern.compile("https://archiveofourown\\.org/works/\\d{5,}");
         Matcher m;
         List<String> finalList = new ArrayList<>();
-        int count = 0;
-        for (String currentLink : LinkList)
+        for (String currentLink : linkList)
         {
             m = works.matcher(currentLink);
             if (m.matches())
             {
-                //System.out.println("Work Found! " + currentLink);
                 finalList.add(currentLink);
-                count++;
             }
         }
-        writeToFile(finalList);
-        System.out.println("Works found on A03: " + count);
+        writeToFile(finalList, "A03Links.txt");
+        System.out.println("A03 Links sent to A03Links.txt");
         return finalList;
     }
 
-    private static void writeToFile(List<String> finalList)
+    private static void writeToFile(List<String> finalList, String filename)
     {
         try
         {
-            PrintWriter pw = new PrintWriter(new FileWriter("links.txt"));
+            PrintWriter pw = new PrintWriter(new FileWriter(filename));
             for (String link : finalList)
             {
                 pw.println(link);
@@ -171,9 +161,9 @@ public class Main
         }
         catch (Exception ex)
         {
+            System.out.println("Writing to file failed");
             System.out.println(ex.toString());
         }
-        System.out.println("Links sent to links.txt file!");
     }
 
     private static List<String> compareLists(List<String> firstList, List<String> secondList) //first list: firefox, second list: a03
@@ -183,11 +173,22 @@ public class Main
         {
             if (!firstList.contains(s))
             {
-                System.out.println("Comparing URL: " + s + "Contains Result: " + firstList.contains(s));
                 temp.add(s);
             }
         }
         return temp;
     }
+
+    private static void findMissingItems()
+    {
+        if (checkJson)
+        {
+            List<String> temp = compareLists(jsonList, linkList);
+            System.out.println("Missing Item Count: " + temp.size());
+            writeToFile(temp,"missing.txt");
+            System.out.print("Missing items sent to missing.txt");
+        }
+    }
+
 }
 
