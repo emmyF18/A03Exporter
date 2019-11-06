@@ -3,17 +3,15 @@ import com.jaunt.UserAgent;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class JSONFilters
+class JSONFilters
 {
-    private PrintWriter pw ;
-    public List<String> getUrls(String jsonFile, String outputFile )
+    List<String> getUrls(String jsonFile, String outputFile, Boolean A03Only)
     {
         UserAgent userAgent= new UserAgent();
         JNode searchResults = userAgent.json;
@@ -28,18 +26,11 @@ public class JSONFilters
         {
             urls.add(node.toString());
         }
-        urls = ao3LinksOnly(urls);
-        try {
-            pw = new PrintWriter(new FileWriter(outputFile));
-            for (String url : urls)
-            {
-                System.out.println("Writing: " + url);
-                pw.println(url);
-            }
-            pw.close();
-        } catch (Exception e) { e.printStackTrace(); }
-
-        System.out.println("JSON URL Count:" + urls.size());
+        if(A03Only)
+        {
+            urls = ao3LinksOnly(urls);
+        }
+        writeToFile(urls, outputFile);
         return urls;
     }
     private List<String> ao3LinksOnly(List<String> fullURLS)
@@ -47,18 +38,28 @@ public class JSONFilters
         Pattern works = Pattern.compile("https://archiveofourown\\.org/works/\\d{5,}");
         Matcher m;
         List<String> a03List = new ArrayList<>();
-        int count =0;
+
         for(String url : fullURLS)
         {
-            m = works.matcher(url);
+            String newUrl = url.replaceAll("\\\\","");
+            m = works.matcher(newUrl);
             if(m.matches())
             {
-                String temp = url.replaceAll("\\\\","");
-                a03List.add(temp);
-                count++;
+                a03List.add(newUrl);
             }
         }
-        System.out.println("A03 Bookmark Count in JSON:"+ count);
         return  a03List;
     }
+    private void writeToFile(List<String> urls, String outputFile)
+    {
+        try {
+            PrintWriter pw = new PrintWriter(new FileWriter(outputFile));
+            for (String url : urls)
+            {
+                pw.println(url);
+            }
+            pw.close();
+        } catch (Exception e) { e.printStackTrace(); }
+    }
+
 }
