@@ -1,6 +1,5 @@
 import com.jaunt.JNode;
 import com.jaunt.UserAgent;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
