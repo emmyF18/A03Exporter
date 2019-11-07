@@ -15,13 +15,13 @@ public class Main
     private static List<String> jsonList;
     private static boolean checkJson;
 
-    public static void main(String[] args) //TODO at some point move a03 stuff to separate class
+    public static void main(String[] args) //TODO at some point move a03 stuff to separate class if possible
     {
         boolean error = false;
         getInput();
         UserAgent userAgent = new UserAgent();  //create new userAgent (headless browser)
         List<String> FirstList = new ArrayList<>();
-        try //check username and find last page
+        try //check username and find links for last page
         {
             FindFirstPage(userAgent, FirstList);
         }
@@ -40,7 +40,7 @@ public class Main
             linkList = getMatchingWorks(); // get all work links
             if (checkJson) System.out.println("Works found in JSON File: " + jsonList.size());
             System.out.println("Works found on A03: " + linkList.size());
-            findMissingItems(); // look for items missing from json file
+            if(checkJson) findMissingItems(); // look for items missing from json file
         }
 
     }
@@ -168,26 +168,16 @@ public class Main
 
     private static List<String> compareLists(List<String> firstList, List<String> secondList) //first list: firefox, second list: a03
     {
-        List<String> temp = new ArrayList<>();
-        for (String s : secondList)
-        {
-            if (!firstList.contains(s))
-            {
-                temp.add(s);
-            }
-        }
-        return temp;
+        secondList.removeAll(firstList);
+        return secondList;
     }
 
     private static void findMissingItems()
     {
-        if (checkJson)
-        {
             List<String> temp = compareLists(jsonList, linkList);
             System.out.println("Missing Item Count: " + temp.size());
             writeToFile(temp,"missing.txt");
             System.out.print("Missing items sent to missing.txt");
-        }
     }
 
 }
